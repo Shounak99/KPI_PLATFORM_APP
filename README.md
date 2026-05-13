@@ -1,37 +1,107 @@
-Business Decisions & Assumptions
+# KPI Platform
 
+A Django web app for tracking KPIs across projects with role-based access control.
 
-KPI Status
-Status is manually set by the user (they choose On Track / At Risk / Off Track)
-System provides a suggested status based on math (the suggested_status property) but does not auto-apply it — user has final say
-Thresholds for suggestion: ≥90% of target = On Track, 70–89% = At Risk, <70% = Off Track
-These thresholds are arbitrary and can be changed per business need
+## Requirements
 
+- Python 3.10+
+- Docker Desktop (for PostgreSQL)
 
-Overall Project Status (kpi_summary)
-Worst case wins — if even one KPI is Off Track, the whole project is Off Track
-If no Off Track but any At Risk → project is At Risk
-All On Track → project is On Track
-Project with zero KPIs has status "No KPIs" — not counted as healthy or unhealthy
+## Local Setup
 
+### 1. Clone and create virtual environment
 
-KPI Design (Flexibility)
-KPIs are not hardcoded — each project can have any number of KPIs with any name
-Each KPI has a unit field (%, $, score, units, etc.) — free text, not an enum — so it works for any measurement type
-actual_value defaults to 0 on creation — assumption: new KPIs start with no progress recorded
+```bash
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
+```
 
+### 2. Install dependencies
 
-Data Integrity
-Deleting a Project cascades — all its KPIs are deleted automatically
-KPIs cannot exist without a parent Project (no orphan KPIs)
-target_value and actual_value must be ≥ 0 (enforced by MinValueValidator)
+```bash
+pip install -r requirements.txt
+```
 
+### 3. Start PostgreSQL via Docker
 
-Ownership
-owner is a plain text field (no user authentication system) — assumption: MVP scope, auth can be added later
-No multi-tenancy — all users see all projects
+```bash
+docker run --name kpi-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=kpi_platform -p 5433:5432 -d postgres
+```
 
+> Note: uses port 5433 to avoid conflict with any local PostgreSQL installation.
 
-Progress Calculation
-progress_percent caps at 100% even if actual exceeds target — avoids confusing >100% display
-Stored as decimal, not integer — allows values like 87.5%
+### 4. Configure environment
+
+Create a `.env` file in the project root:
+
+```
+SECRET_KEY=django-insecure-dev-key-change-in-production-abc123xyz
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+DB_NAME=kpi_platform
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5433
+```
+
+### 5. Run migrations
+
+```bash
+python manage.py migrate
+```
+
+### 6. Create a superuser (admin access)
+
+```bash
+python manage.py createsuperuser
+```
+
+### 7. Run the development server
+
+```bash
+python manage.py runserver
+```
+
+App runs at `http://localhost:8000`
+
+---
+
+## User Roles
+
+| Role | Permissions |
+|------|-------------|
+| Admin | Full access — manage all projects and KPIs |
+| Project Owner | Create projects, manage own projects and KPIs only |
+| Viewer | Read-only access to all projects and KPI summaries |
+
+Assign roles at registration or via Django admin at `/admin/`.
+
+---
+
+## Business Decisions & Assumptions
+
+**KPI Status**
+- Status is manually set by the user (On Track / At Risk / Off Track)
+- System provides a suggested status based on math (`suggested_status` property) but does not auto-apply it
+- Thresholds: ≥90% of target = On Track, 70–89% = At Risk, <70% = Off Track
+
+**Overall Project Status**
+- Worst case wins — one Off Track KPI makes the whole project Off Track
+- All On Track → project is On Track
+- Project with zero KPIs has status "No KPIs"
+
+**KPI Design**
+- KPIs are not hardcoded — each project can have any number with any name
+- `unit` is free text (%, $, score, etc.)
+- `actual_value` defaults to 0 on creation
+
+**Data Integrity**
+- Deleting a project cascades — all its KPIs are deleted automatically
+- `target_value` and `actual_value` must be ≥ 0
+
+**Progress Calculation**
+- `progress_percent` caps at 100% even if actual exceeds target
+- Stored as decimal — allows values like 87.5%
