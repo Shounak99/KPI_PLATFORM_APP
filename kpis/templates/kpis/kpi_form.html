@@ -1,14 +1,12 @@
-<!doctype html>
-<html>
-  <head>
-    <title>New KPI</title>
-  </head>
-  <body>
+{% extends 'base.html' %}
+
+{% block title %}New KPI{% endblock %}
+
+{% block content %}
     <h1>New KPI for {{ project.name }}</h1>
     <form method="post">
       {% csrf_token %} {{ form.as_p }}
       <button type="submit">Save</button>
     </form>
     <a href="{% url 'projects:project_detail' project.pk %}">Cancel</a>
-  </body>
-</html>
+{% endblock %}

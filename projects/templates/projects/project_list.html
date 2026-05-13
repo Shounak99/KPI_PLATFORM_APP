@@ -1,24 +1,18 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Projects</title>
-  </head>
-  <body>
-    <h1>Projects</h1>
-      <p>{% if not request.user.is_viewer %}<a href="{% url 'projects:project_create' %}">Create Project</a>
-    {% endif %}</p>
-   {% for project in projects %}
-  <p>
-    <a href="{% url 'projects:project_detail' project.pk %}">{{ project.name }}</a>
-    — 
-    ✓ It {{ project.kpi_summary.on_track }} 
-    ⚠ {{ project.kpi_summary.at_risk }} 
-    ✗ {{ project.kpi_summary.off_track }}
-    ({{ project.kpi_summary.total }} KPIs)
-  </p>
-{% empty %}
-  <p>No projects yet.</p>
-{% endfor %}
+{% extends 'base.html' %}
 
-  </body>
-</html>
+{% block title %}Projects{% endblock %}
+
+{% block content %}
+  <h1>Projects</h1>
+  {% if not request.user.is_viewer %}
+    <a href="{% url 'projects:project_create' %}" class="btn btn-primary mb-3">New Project</a>
+  {% endif %}
+  {% for project in projects %}
+    <p>
+      <a href="{% url 'projects:project_detail' project.pk %}">{{ project.name }}</a>
+      — ✓ {{ project.kpi_summary.on_track }} ⚠ {{ project.kpi_summary.at_risk }} ✗ {{ project.kpi_summary.off_track }}
+    </p>
+  {% empty %}
+    <p>No projects yet.</p>
+  {% endfor %}
+{% endblock %}

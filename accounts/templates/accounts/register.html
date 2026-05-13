@@ -1,7 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head><title>Register</title></head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
   <h1>Register</h1>
   <form method="post">
     {% csrf_token %}
@@ -9,5 +10,4 @@
     <button type="submit">Register</button>
   </form>
   <a href="{% url 'accounts:login' %}">Already have an account? Login</a>
-</body>
-</html>
+{% endblock %}

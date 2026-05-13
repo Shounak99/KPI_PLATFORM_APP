@@ -1,9 +1,8 @@
-<!doctype html>
-<html>
-  <head>
-    <title>{{ project.name }}</title>
-  </head>
-  <body>
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block content %}
     <h1>{{ project.name }}</h1>
     <p><strong>Owner:</strong> {{ project.owner }}</p>
     <p><strong>Description:</strong> {{ project.description }}</p>
@@ -39,5 +38,5 @@
     {% endfor %}
 
     <a href="{% url 'projects:project_list' %}">Back to list</a>
-  </body>
-</html>
+
+{% endblock %}

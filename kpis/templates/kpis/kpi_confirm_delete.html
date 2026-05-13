@@ -1,12 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head><title>Delete KPI</title></head>
-<body>
+{% extends 'base.html' %}  
+
+{% block title %}Delete KPI{% endblock %}
+
+{% block content %}
   <h1>Delete "{{ kpi.name }}"?</h1>
   <form method="post">
     {% csrf_token %}
     <button type="submit">Yes, delete</button>
   </form>
   <a href="{% url 'projects:project_detail' project.pk %}">Cancel</a>
-</body>
-</html>
+{% endblock %}
