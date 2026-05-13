@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Projects</title>
+  </head>
+  <body>
+    <h1>Projects</h1>
+    {% for project in projects %}
+    <p>
+      <a href="{% url 'projects:project_detail' project.pk %}"
+        >{{ project.name }}</a
+      >
+    </p>
+    {% empty %}
+
+    <p>No projects yet.</p>
+    {% endfor %}
+  </body>
+</html>

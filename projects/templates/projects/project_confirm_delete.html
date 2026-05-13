@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Delete Project</title></head>
+<body>
+  <h1>Delete "{{ project.name }}"?</h1>
+  <p>This will also delete all its KPIs. Cannot be undone.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">Yes, delete</button>
+  </form>
+  <a href="{% url 'projects:project_detail' project.pk %}">Cancel</a>
+</body>
+</html>

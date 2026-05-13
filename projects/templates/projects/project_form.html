@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <head>
+    <title>New Project</title>
+  </head>
+  <body>
+    <h1>New Project</h1>
+    <form method="post">
+      {% csrf_token %} {{ form.as_p }}
+      <button type="submit">Save</button>
+    </form>
+    <a href="{% url 'projects:project_list' %}">Back to list</a>
+  </body>
+</html>
