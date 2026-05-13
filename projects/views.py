@@ -3,6 +3,7 @@ from .models import Project
 from .forms import ProjectForm
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.contrib import messages
 
 @login_required
 def project_list(request):
@@ -31,6 +32,7 @@ def project_create(request):
             project = form.save(commit=False)
             project.owner = request.user
             project.save()
+            messages.success(request, 'Project created successfully.')
             return redirect('projects:project_list')
     else:
         form = ProjectForm()
@@ -54,6 +56,7 @@ def project_edit(request, pk):
         form = ProjectForm(request.POST, instance=project)
         if form.is_valid():
             form.save()
+            messages.success(request, 'Project updated successfully.')
             return redirect('projects:project_detail', pk=project.pk)
     else:
         form = ProjectForm(instance=project)
@@ -66,5 +69,6 @@ def project_delete(request, pk):
         raise PermissionDenied
     if request.method == 'POST':
         project.delete()
+        messages.success(request, 'Project deleted.')
         return redirect('projects:project_list')
     return render(request, 'projects/project_confirm_delete.html', {'project': project})
