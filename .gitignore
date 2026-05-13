@@ -2,7 +2,9 @@ venv/
 .env
 __pycache__/
 *.pyc
+*.pyo
 staticfiles/
 db.sqlite3
 .claude
-.prettierignore
+*.log
+.DS_Store
