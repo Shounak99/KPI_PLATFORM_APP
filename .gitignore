@@ -8,3 +8,4 @@ db.sqlite3
 .claude
 *.log
 .DS_Store
+.prettierignore
