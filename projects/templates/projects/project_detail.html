@@ -8,20 +8,28 @@
     <p><strong>Owner:</strong> {{ project.owner }}</p>
     <p><strong>Description:</strong> {{ project.description }}</p>
     <p>
+        {% if not request.user.is_viewer %}
       <a href="{% url 'projects:project_edit' project.pk %}">Edit Project</a>
+      {% endif %}
     </p>
     <p>
+        {% if not request.user.is_viewer %}
       <a href="{% url 'projects:project_delete' project.pk %}"
         >Delete Project</a
       >
+        {% endif %}
     </p>
     <h2>KPIs</h2>
-    <p><a href="{% url 'kpis:kpi_create' project.pk %}">Add KPI</a></p>
+    <p>{% if not request.user.is_viewer %}
+        <a href="{% url 'kpis:kpi_create' project.pk %}">Add KPI</a>
+    {% endif %}</p>
 
     {% for kpi in project.kpis.all %}
     <p>
-        <a href="{% url 'kpis:kpi_edit' project.pk kpi.pk %}">Edit</a>
+      {% if not request.user.is_viewer %}  <a href="{% url 'kpis:kpi_edit' project.pk kpi.pk %}">Edit</a>  {% endif %}
+       {% if not request.user.is_viewer %}
 <a href="{% url 'kpis:kpi_delete' project.pk kpi.pk %}">Delete</a>
+         {% endif %}
 
       {{ kpi.name }} — {{ kpi.actual_value }}/{{ kpi.target_value }} 
       {{ kpi.unit }} ({{ kpi.get_status_display }})

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     # our apps
     'projects',
     'kpis',
+    'accounts'
 ]
 
 
@@ -83,6 +84,7 @@ DATABASES = {
 }
 
 
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 # Password validation
@@ -131,4 +133,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
+LOGIN_URL = '/accounts/login/'
 

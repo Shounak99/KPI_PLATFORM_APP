@@ -5,15 +5,20 @@
   </head>
   <body>
     <h1>Projects</h1>
-    {% for project in projects %}
-    <p>
-      <a href="{% url 'projects:project_detail' project.pk %}"
-        >{{ project.name }}</a
-      >
-    </p>
-    {% empty %}
+      <p>{% if not request.user.is_viewer %}<a href="{% url 'projects:project_create' %}">Create Project</a>
+    {% endif %}</p>
+   {% for project in projects %}
+  <p>
+    <a href="{% url 'projects:project_detail' project.pk %}">{{ project.name }}</a>
+    — 
+    ✓ It {{ project.kpi_summary.on_track }} 
+    ⚠ {{ project.kpi_summary.at_risk }} 
+    ✗ {{ project.kpi_summary.off_track }}
+    ({{ project.kpi_summary.total }} KPIs)
+  </p>
+{% empty %}
+  <p>No projects yet.</p>
+{% endfor %}
 
-    <p>No projects yet.</p>
-    {% endfor %}
   </body>
 </html>
