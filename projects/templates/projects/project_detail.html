@@ -3,40 +3,69 @@
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
-    <h1>{{ project.name }}</h1>
-    <p><strong>Owner:</strong> {{ project.owner }}</p>
-    <p><strong>Description:</strong> {{ project.description }}</p>
-    <p>
-        {% if not request.user.is_viewer %}
-      <a href="{% url 'projects:project_edit' project.pk %}">Edit Project</a>
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h1 class="mb-1">{{ project.name }}</h1>
+    <p class="text-muted mb-1">{{ project.description }}</p>
+    <p class="text-muted small mb-0"><strong>Owner:</strong> {{ project.owner }}</p>
+  </div>
+  {% if not request.user.is_viewer %}
+  <div class="d-flex gap-2">
+    <a href="{% url 'projects:project_edit' project.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+    <a href="{% url 'projects:project_delete' project.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">KPIs</h4>
+  {% if not request.user.is_viewer %}
+    <a href="{% url 'kpis:kpi_create' project.pk %}" class="btn btn-primary btn-sm">+ Add KPI</a>
+  {% endif %}
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+  {% for kpi in project.kpis.all %}
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title">{{ kpi.name }}</h6>
+        <p class="card-text text-muted small">{{ kpi.description|truncatewords:12 }}</p>
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>{{ kpi.actual_value }} / {{ kpi.target_value }} {{ kpi.unit }}</span>
+            <span>{{ kpi.progress_percent }}%</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar
+              {% if kpi.status == 'on_track' %}bg-success
+              {% elif kpi.status == 'at_risk' %}bg-warning
+              {% else %}bg-danger{% endif %}"
+              style="width: {{ kpi.progress_percent }}%">
+            </div>
+          </div>
+        </div>
+        <span class="badge
+          {% if kpi.status == 'on_track' %}bg-success
+          {% elif kpi.status == 'at_risk' %}bg-warning text-dark
+          {% else %}bg-danger{% endif %}">
+          {{ kpi.get_status_display }}
+        </span>
+      </div>
+      {% if not request.user.is_viewer %}
+      <div class="card-footer d-flex gap-2">
+        <a href="{% url 'kpis:kpi_edit' project.pk kpi.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+        <a href="{% url 'kpis:kpi_delete' project.pk kpi.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+      </div>
       {% endif %}
-    </p>
-    <p>
-        {% if not request.user.is_viewer %}
-      <a href="{% url 'projects:project_delete' project.pk %}"
-        >Delete Project</a
-      >
-        {% endif %}
-    </p>
-    <h2>KPIs</h2>
-    <p>{% if not request.user.is_viewer %}
-        <a href="{% url 'kpis:kpi_create' project.pk %}">Add KPI</a>
-    {% endif %}</p>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <p class="text-muted">No KPIs yet.</p>
+  </div>
+  {% endfor %}
+</div>
 
-    {% for kpi in project.kpis.all %}
-    <p>
-      {% if not request.user.is_viewer %}  <a href="{% url 'kpis:kpi_edit' project.pk kpi.pk %}">Edit</a>  {% endif %}
-       {% if not request.user.is_viewer %}
-<a href="{% url 'kpis:kpi_delete' project.pk kpi.pk %}">Delete</a>
-         {% endif %}
-
-      {{ kpi.name }} — {{ kpi.actual_value }}/{{ kpi.target_value }} 
-      {{ kpi.unit }} ({{ kpi.get_status_display }})
-    </p>
-    {% empty %}
-    <p>No KPIs yet.</p>
-    {% endfor %}
-
-    <a href="{% url 'projects:project_list' %}">Back to list</a>
-
+<a href="{% url 'projects:project_list' %}" class="btn btn-link mt-4 ps-0">← Back to Projects</a>
 {% endblock %}
