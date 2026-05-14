@@ -142,6 +142,9 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+CSRF_TRUSTED_ORIGINS = ['https://kpiplatformapp-production.up.railway.app']
+
+
 
 
 
