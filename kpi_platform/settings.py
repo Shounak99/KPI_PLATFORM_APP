@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config, Csv
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -73,16 +74,14 @@ WSGI_APPLICATION = 'kpi_platform.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'kpi_platform',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5433',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://postgres:postgres@localhost:5433/kpi_platform'
+    )
 }
+
 
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
