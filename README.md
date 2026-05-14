@@ -106,5 +106,12 @@ Assign roles at registration or via Django admin at `/admin/`.
 - `progress_percent` caps at 100% even if actual exceeds target
 - Stored as decimal — allows values like 87.5%
 
+
+**Trade offs**
+Architecture- 
+
+
 **Project is Live**
 project url- https://kpiplatformapp-production.up.railway.app/
+
+
