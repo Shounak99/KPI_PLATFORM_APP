@@ -66,6 +66,35 @@
   </div>
   {% endfor %}
 </div>
+{% with summary=project.kpi_summary %}
+{% if summary.total > 0 %}
+<div class="mt-5">
+  <h4>KPI Health Overview</h4>
+  <div style="max-width: 300px;">
+    <canvas id="kpiChart"></canvas>
+  </div>
+</div>
+<script>
+  new Chart(document.getElementById('kpiChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['On Track', 'At Risk', 'Off Track'],
+      datasets: [{
+        data: [{{ summary.on_track }}, {{ summary.at_risk }}, {{ summary.off_track }}],
+        backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+</script>
+{% endif %}
+{% endwith %}
+
 
 <a href="{% url 'projects:project_list' %}" class="btn btn-link mt-4 ps-0">← Back to Projects</a>
 {% endblock %}
