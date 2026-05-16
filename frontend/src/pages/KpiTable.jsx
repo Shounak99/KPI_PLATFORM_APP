@@ -2,19 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
-async function fetchAllPages(url) {
-  let results = [];
-  let next = url;
-  while (next) {
-    const res = await api.get(next);
-    results = [...results, ...res.data.results];
-    next = res.data.next;
-  }
-  return results;
-}
-
 export default function KpiTable() {
   const [kpis, setKpis] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -22,34 +12,37 @@ export default function KpiTable() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadAll();
-  }, []);
+    loadKpis();
+  }, [page, search, statusFilter]);
 
-  async function loadAll() {
-    const allProjects = await fetchAllPages('/projects/');
-    const allKpis = [];
-    for (const project of allProjects) {
-      const kpis = await fetchAllPages(`/projects/${project.id}/kpis/`);
-      kpis.forEach(k => allKpis.push({ ...k, project_name: project.name, project_id: project.id }));
-    }
-    setKpis(allKpis);
+  async function loadKpis() {
+    const params = new URLSearchParams({ page });
+    if (search) params.append('search', search);
+    if (statusFilter) params.append('status', statusFilter);
+    const res = await api.get(`/kpis/?${params}`);
+    setKpis(res.data.results);
+    setTotalCount(res.data.count);
   }
 
-  const filtered = kpis.filter(k => {
-    const matchSearch = k.name.toLowerCase().includes(search.toLowerCase()) ||
-      k.project_name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter ? k.status === statusFilter : true;
-    return matchSearch && matchStatus;
-  });
+  function handleSearch(e) {
+    setSearch(e.target.value);
+    setPage(1);
+  }
 
-  const totalPages = Math.ceil(filtered.length / perPage);
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  function handleStatus(e) {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  }
+
+  const totalPages = Math.ceil(totalCount / perPage);
 
   function statusBadge(status) {
     const map = { on_track: 'success', at_risk: 'warning', off_track: 'danger' };
-    return <span className={`badge bg-${map[status]} ${status === 'at_risk' ? 'text-dark' : ''}`}>
-      {status.replace('_', ' ')}
-    </span>;
+    return (
+      <span className={`badge bg-${map[status]} ${status === 'at_risk' ? 'text-dark' : ''}`}>
+        {status.replace('_', ' ')}
+      </span>
+    );
   }
 
   return (
@@ -59,11 +52,10 @@ export default function KpiTable() {
       <div className="row mb-3 g-2">
         <div className="col-md-6">
           <input className="form-control" placeholder="Search by KPI or project name..."
-            value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+            value={search} onChange={handleSearch} />
         </div>
         <div className="col-md-3">
-          <select className="form-select" value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+          <select className="form-select" value={statusFilter} onChange={handleStatus}>
             <option value="">All Statuses</option>
             <option value="on_track">On Track</option>
             <option value="at_risk">At Risk</option>
@@ -71,7 +63,7 @@ export default function KpiTable() {
           </select>
         </div>
         <div className="col-md-3 d-flex align-items-center text-muted small">
-          {filtered.length} KPIs found
+          {totalCount} KPIs found
         </div>
       </div>
 
@@ -89,12 +81,12 @@ export default function KpiTable() {
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 && (
+            {kpis.length === 0 && (
               <tr><td colSpan="7" className="text-center text-muted">No KPIs found.</td></tr>
             )}
-            {paginated.map(kpi => (
+            {kpis.map(kpi => (
               <tr key={kpi.id} style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/projects/${kpi.project_id}`)}>
+                onClick={() => navigate(`/projects/${kpi.project}`)}>
                 <td>{kpi.name}</td>
                 <td>{kpi.project_name}</td>
                 <td>{kpi.target_value}</td>
@@ -114,21 +106,23 @@ export default function KpiTable() {
         </table>
       </div>
 
-      <nav>
-        <ul className="pagination">
-          <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-            <button className="page-link" onClick={() => setPage(page - 1)}>Previous</button>
-          </li>
-          {[...Array(totalPages)].map((_, i) => (
-            <li key={i} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
-              <button className="page-link" onClick={() => setPage(i + 1)}>{i + 1}</button>
+      {totalPages > 1 && (
+        <nav>
+          <ul className="pagination">
+            <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => setPage(page - 1)}>Previous</button>
             </li>
-          ))}
-          <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
-            <button className="page-link" onClick={() => setPage(page + 1)}>Next</button>
-          </li>
-        </ul>
-      </nav>
+            {[...Array(totalPages)].map((_, i) => (
+              <li key={i} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
+                <button className="page-link" onClick={() => setPage(i + 1)}>{i + 1}</button>
+              </li>
+            ))}
+            <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => setPage(page + 1)}>Next</button>
+            </li>
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from projects.api_views import ProjectViewSet
-from kpis.api_views import KPIViewSet
+from kpis.api_views import KPIViewSet, AllKPIsView
 from accounts.api_views import RegisterView, me_view
 
 router = DefaultRouter()
@@ -17,6 +17,7 @@ urlpatterns = router.urls + [
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', me_view, name='me'),
+    path('kpis/', AllKPIsView.as_view(), name='all-kpis'),
     path('projects/<int:project_pk>/kpis/', kpi_list, name='project-kpis-list'),
     path('projects/<int:project_pk>/kpis/<int:pk>/', kpi_detail, name='project-kpis-detail'),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),

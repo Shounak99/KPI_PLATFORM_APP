@@ -63,13 +63,66 @@ Assign roles at registration or via Django admin.
 
 ## Local Setup
 
+Two ways to run locally: **Docker** (recommended, one command) or **manual** (separate backend + frontend setup).
+
+---
+
+### Option 1: Docker (Recommended)
+
+Runs the full stack — PostgreSQL, Django backend, and React frontend — in containers.
+
+**Prerequisites:** Docker Desktop
+
+**1. Clone the repo**
+```bash
+git clone https://github.com/Shounak99/KPI_PLATFORM_APP.git
+cd KPI_PLATFORM_APP
+```
+
+**2. Start all services**
+```bash
+docker compose up --build
+```
+
+First run builds the images (~2–3 min). Subsequent runs are faster.
+
+| Service | URL |
+|---------|-----|
+| Frontend (React) | http://localhost:3000 |
+| Backend API | http://localhost:8000/api |
+| Django Admin | http://localhost:8000/admin |
+
+**3. Seed dummy data (optional — 20 projects, 60 KPIs)**
+```bash
+docker compose exec backend python manage.py seed_data
+```
+
+**4. Create a superuser (for Django admin)**
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+**5. Stop all services**
+```bash
+docker compose down
+```
+
+To also delete the database volume:
+```bash
+docker compose down -v
+```
+
+---
+
+### Option 2: Manual Setup
+
 ### Prerequisites
 
 - Python 3.10+
 - Node.js 18+
 - Docker Desktop (for PostgreSQL)
 
-### Backend Setup
+### Backend Setup (Manual)
 
 **1. Clone and create virtual environment**
 ```bash
@@ -129,7 +182,7 @@ Backend runs at `http://localhost:8000`
 
 ---
 
-### Frontend Setup
+### Frontend Setup (Manual)
 
 **1. Install dependencies**
 ```bash
