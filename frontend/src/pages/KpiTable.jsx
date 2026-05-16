@@ -2,9 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
+async function fetchAllPages(url) {
+  let results = [];
+  let next = url;
+  while (next) {
+    const res = await api.get(next);
+    results = [...results, ...res.data.results];
+    next = res.data.next;
+  }
+  return results;
+}
+
 export default function KpiTable() {
   const [kpis, setKpis] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -16,12 +26,11 @@ export default function KpiTable() {
   }, []);
 
   async function loadAll() {
-    const projectsRes = await api.get('/projects/');
-    setProjects(projectsRes.data);
+    const allProjects = await fetchAllPages('/projects/');
     const allKpis = [];
-    for (const project of projectsRes.data) {
-      const kpiRes = await api.get(`/projects/${project.id}/kpis/`);
-      kpiRes.data.forEach(k => allKpis.push({ ...k, project_name: project.name, project_id: project.id }));
+    for (const project of allProjects) {
+      const kpis = await fetchAllPages(`/projects/${project.id}/kpis/`);
+      kpis.forEach(k => allKpis.push({ ...k, project_name: project.name, project_id: project.id }));
     }
     setKpis(allKpis);
   }

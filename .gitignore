@@ -11,3 +11,4 @@ db.sqlite3
 .prettierignore
 HLD.md
 LLD.md
+ARCHITECTURE_EVOLUTION.md

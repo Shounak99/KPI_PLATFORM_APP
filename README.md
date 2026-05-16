@@ -1,71 +1,36 @@
 # KPI Platform
 
-A Django web app for tracking KPIs across projects with role-based access control.
+A full-stack KPI tracking application with a Django REST API backend and React frontend. Supports role-based access control, JWT authentication, and KPI health monitoring across projects.
 
-## Requirements
+## Live URLs
 
-- Python 3.10+
-- Docker Desktop (for PostgreSQL)
+- **Frontend (React):** https://kpi-platform-app.vercel.app
+- **Backend API (Django):** https://kpiplatformapp-production.up.railway.app/api/
+- **Django Admin:** https://kpiplatformapp-production.up.railway.app/admin/
 
-## Local Setup
+---
 
-### 1. Clone and create virtual environment
-
-```bash
-python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # Mac/Linux
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Start PostgreSQL via Docker
-
-```bash
-docker run --name kpi-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=kpi_platform -p 5433:5432 -d postgres
-```
-
-> Note: uses port 5433 to avoid conflict with any local PostgreSQL installation.
-
-### 4. Configure environment
-
-Create a `.env` file in the project root:
+## Architecture
 
 ```
-SECRET_KEY=django-insecure-dev-key-change-in-production-abc123xyz
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-DB_NAME=kpi_platform
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_HOST=localhost
-DB_PORT=5433
+React (Vercel) → Django REST API (Railway) → PostgreSQL (Railway)
 ```
 
-### 5. Run migrations
+- Frontend and backend are fully decoupled
+- All FE↔BE communication via REST API with JWT authentication
 
-```bash
-python manage.py migrate
-```
+---
 
-### 6. Create a superuser (admin access)
+## Tech Stack
 
-```bash
-python manage.py createsuperuser
-```
-
-### 7. Run the development server
-
-```bash
-python manage.py runserver
-```
-
-App runs at `http://localhost:8000`
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React + Vite + Bootstrap 5 |
+| Backend | Django 5.2 + Django REST Framework |
+| Auth | JWT (djangorestframework-simplejwt) |
+| Database | PostgreSQL |
+| Frontend Hosting | Vercel |
+| Backend Hosting | Railway |
 
 ---
 
@@ -77,7 +42,128 @@ App runs at `http://localhost:8000`
 | Project Owner | Create projects, manage own projects and KPIs only |
 | Viewer | Read-only access to all projects and KPI summaries |
 
-Assign roles at registration or via Django admin at `/admin/`.
+Assign roles at registration or via Django admin.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register/` | Register new user |
+| POST | `/api/auth/login/` | Login, returns JWT tokens |
+| POST | `/api/auth/refresh/` | Refresh access token |
+| GET | `/api/auth/me/` | Get current user info |
+| GET/POST | `/api/projects/` | List / create projects |
+| GET/PUT/DELETE | `/api/projects/<id>/` | Retrieve / update / delete project |
+| GET/POST | `/api/projects/<id>/kpis/` | List / create KPIs |
+| GET/PUT/DELETE | `/api/projects/<id>/kpis/<id>/` | Retrieve / update / delete KPI |
+
+---
+
+## Local Setup
+
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+- Docker Desktop (for PostgreSQL)
+
+### Backend Setup
+
+**1. Clone and create virtual environment**
+```bash
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
+```
+
+**2. Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**3. Start PostgreSQL via Docker**
+```bash
+docker run --name kpi-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=kpi_platform -p 5433:5432 -d postgres
+```
+
+> Note: uses port 5433 to avoid conflict with any local PostgreSQL installation.
+
+**4. Configure environment — create `.env` in project root:**
+```
+SECRET_KEY=django-insecure-dev-key-change-in-production-abc123xyz
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+DB_NAME=kpi_platform
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5433
+
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+**5. Run migrations**
+```bash
+python manage.py migrate
+```
+
+**6. Seed dummy data (optional — creates 20 projects, 60 KPIs)**
+```bash
+python manage.py seed_data
+```
+
+**7. Create superuser**
+```bash
+python manage.py createsuperuser
+```
+
+**8. Run backend server**
+```bash
+python manage.py runserver
+```
+
+Backend runs at `http://localhost:8000`
+
+---
+
+### Frontend Setup
+
+**1. Install dependencies**
+```bash
+cd frontend
+npm install
+```
+
+**2. Configure environment — create `frontend/.env.local`:**
+```
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+**3. Run frontend dev server**
+```bash
+npm run dev
+```
+
+Frontend runs at `http://localhost:5173`
+
+---
+
+## Deployment
+
+### Backend (Railway)
+- Connects to GitHub repo — auto-deploys on push
+- Set environment variables in Railway dashboard:
+  - `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`
+  - `DATABASE_URL` (auto-set by Railway Postgres)
+  - `CORS_ALLOWED_ORIGINS=https://your-vercel-url.vercel.app`
+
+### Frontend (Vercel)
+- Deploy `frontend/` folder to Vercel
+- Set environment variable:
+  - `VITE_API_BASE_URL=https://kpiplatformapp-production.up.railway.app/api`
 
 ---
 
@@ -105,9 +191,3 @@ Assign roles at registration or via Django admin at `/admin/`.
 **Progress Calculation**
 - `progress_percent` caps at 100% even if actual exceeds target
 - Stored as decimal — allows values like 87.5%
-
-
-**Project is Live**
-project url- https://kpiplatformapp-production.up.railway.app/
-
-

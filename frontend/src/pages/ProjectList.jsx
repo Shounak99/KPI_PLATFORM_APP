@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
-const PER_PAGE = 6;
+const PAGE_SIZE = 10;
 
 export default function ProjectList() {
   const [projects, setProjects] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
   const [page, setPage] = useState(1);
@@ -14,11 +15,12 @@ export default function ProjectList() {
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [page]);
 
   async function loadProjects() {
-    const res = await api.get('/projects/');
-    setProjects(res.data);
+    const res = await api.get(`/projects/?page=${page}`);
+    setProjects(res.data.results);
+    setTotalCount(res.data.count);
   }
 
   async function createProject() {
@@ -28,8 +30,7 @@ export default function ProjectList() {
     loadProjects();
   }
 
-  const totalPages = Math.ceil(projects.length / PER_PAGE);
-  const paginated = projects.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="container mt-4">
@@ -43,10 +44,10 @@ export default function ProjectList() {
       </div>
 
       <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {paginated.length === 0 && (
+        {projects.length === 0 && (
           <div className="col-12"><p className="text-muted">No projects yet.</p></div>
         )}
-        {paginated.map(p => (
+        {projects.map(p => (
           <div className="col" key={p.id}>
             <div className="card h-100 shadow-sm" style={{ cursor: 'pointer' }}
               onClick={() => navigate(`/projects/${p.id}`)}>

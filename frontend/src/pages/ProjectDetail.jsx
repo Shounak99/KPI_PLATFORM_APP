@@ -25,8 +25,14 @@ export default function ProjectDetail() {
   }
 
   async function loadKpis() {
-    const res = await api.get(`/projects/${id}/kpis/`);
-    setKpis(res.data);
+    let results = [];
+    let url = `/projects/${id}/kpis/`;
+    while (url) {
+      const res = await api.get(url);
+      results = [...results, ...res.data.results];
+      url = res.data.next;
+    }
+    setKpis(results);
   }
 
   async function deleteProject() {

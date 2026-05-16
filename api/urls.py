@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from projects.api_views import ProjectViewSet
 from kpis.api_views import KPIViewSet
 from accounts.api_views import RegisterView, me_view
@@ -18,4 +19,7 @@ urlpatterns = router.urls + [
     path('auth/me/', me_view, name='me'),
     path('projects/<int:project_pk>/kpis/', kpi_list, name='project-kpis-list'),
     path('projects/<int:project_pk>/kpis/<int:pk>/', kpi_detail, name='project-kpis-detail'),
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

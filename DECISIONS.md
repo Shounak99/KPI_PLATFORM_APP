@@ -2,13 +2,22 @@
 
 ## Overall Architecture Rationale
 
-Built as a Django monolith — single codebase serving both backend logic and HTML templates via Django's template engine. Chosen over a REST API + frontend framework split because:
+Built as a decoupled full-stack application:
 
-- MVP scope does not justify the complexity of two separate codebases
-- Django's ORM, admin, auth, and forms provide everything needed out of the box
-- Faster to build, easier to deploy as a single unit
+- **Backend:** Django REST Framework — pure API, no HTML rendering
+- **Frontend:** React (Vite) — calls the API, handles all UI rendering
+- **Communication:** REST API with JWT authentication
 
-Two Django apps (`projects`, `kpis`) separate domain concerns. A third app (`accounts`) handles authentication. This keeps models, views, and templates scoped per domain rather than dumped into one giant app.
+This architecture was chosen because:
+- Clean separation of concerns — frontend and backend can be developed, deployed, and scaled independently
+- REST API makes the backend reusable — mobile apps, third-party integrations, or a different frontend can consume the same API without changes
+- Industry-standard pattern for modern web applications
+
+Four Django apps separate domain concerns:
+- `projects` — Project model, CRUD API views, serializers
+- `kpis` — KPI model, CRUD API views, serializers
+- `accounts` — Custom User model, JWT auth views (register, login, me)
+- `api` — Central URL routing for all API endpoints
 
 ---
 
@@ -42,40 +51,51 @@ The `suggested_status` property computes a recommendation (≥90% = On Track, 70
 
 ## Scalability Considerations
 
-**Current approach (N+1 problem):**
-The `kpi_summary` property on `Project` runs 5 separate DB queries per project on the list page. At 50 projects this is 250+ queries — acceptable for MVP, not for production scale.
+**N+1 problem in API serializer:**
+`ProjectSerializer` runs 3 separate DB queries per project to count KPI statuses (`on_track`, `at_risk`, `off_track`). At 50 projects this is 150+ extra queries per API call.
 
 **Known fix (not yet implemented):**
-Replace with a single annotated query:
+Replace serializer method fields with a single annotated query in the viewset:
 ```python
 Project.objects.annotate(
-    total_kpis=Count('kpis'),
     on_track=Count('kpis', filter=Q(kpis__status='on_track')),
     at_risk=Count('kpis', filter=Q(kpis__status='at_risk')),
     off_track=Count('kpis', filter=Q(kpis__status='off_track')),
 )
 ```
-This reduces list page queries from O(n) to O(1) regardless of project count.
+This reduces queries from O(n) to O(1) regardless of project count.
 
-**No pagination implemented** — a list of 1000 projects would load slowly. Django's `Paginator` class would fix this with minimal changes.
+**Server-side pagination implemented** — DRF `PageNumberPagination` with `PAGE_SIZE=10` applied globally. API returns `{count, next, previous, results}` envelope on all list endpoints.
 
-**No caching** — repeated visits to the project list re-query the DB every time. Django's cache framework with Redis would reduce DB load significantly.
+**ProjectList uses true server-side pagination** — page state drives `?page=N` query param; `count` from response computes total pages; no client-side slicing.
+
+**KpiTable uses client-side search/filter/pagination over fully-fetched dataset** — `fetchAllPages` helper chases `next` links until exhausted, collecting all projects and all KPIs across pages. Client-side search, status filter, and 10-row pagination then operate on the full in-memory set. Trade-off: more API calls on load (O(projects) requests), but avoids needing a dedicated cross-project KPI search endpoint.
+
+**ProjectDetail fetches all KPI pages** — loops `next` links to collect all KPIs for a project regardless of count. Prevents truncation on projects with >10 KPIs.
+
+**No caching** — Redis cache would significantly reduce DB load on high-traffic deployments.
 
 ---
 
 ## Performance Considerations
 
-- Static files served via `WhiteNoise` — avoids needing a separate CDN or nginx for static assets at this scale
+- Static files served via `WhiteNoise` — no separate CDN or nginx needed at this scale
 - `DecimalField` over `FloatField` for KPI values — slight performance cost but avoids floating point bugs on financial data
-- No background tasks — all operations are synchronous request/response. For future features like bulk KPI imports or scheduled reports, Celery + Redis would be needed
-- DB connection pooling not configured — Django opens a new connection per request by default. At scale, `pgbouncer` or `CONN_MAX_AGE` setting would help
+- No background tasks — all operations are synchronous. Celery + Redis would be needed for bulk imports or scheduled reports
+- DB connection pooling not configured — `CONN_MAX_AGE` or `pgbouncer` would help at scale
 
 ---
 
 ## Authentication and Role Design
 
+**JWT Authentication:**
+`djangorestframework-simplejwt` issues short-lived access tokens (60 min) and long-lived refresh tokens (7 days). Chosen over Django session auth because:
+- Sessions don't work cross-origin (React on Vercel, Django on Railway)
+- JWT is stateless — no server-side session storage needed
+- Standard for decoupled frontend/backend architectures
+
 **Custom User Model:**
-Django strongly recommends creating a custom user model at project start. `AbstractUser` was chosen over `AbstractBaseUser` — it keeps all default Django auth behaviour (username, password hashing, admin integration) and only adds the `role` field. Switching to a custom model mid-project requires resetting all migrations, which was done during development.
+Django strongly recommends creating a custom user model at project start. `AbstractUser` was chosen — keeps all default Django auth behaviour and only adds the `role` field.
 
 **Three roles:**
 
@@ -85,19 +105,19 @@ Django strongly recommends creating a custom user model at project start. `Abstr
 | Project Owner | Create projects, manage only own projects and KPIs |
 | Viewer | Read-only access to all projects and KPI summaries |
 
-Role checks happen in views via `raise PermissionDenied` — server-side enforcement. UI also hides buttons based on role (template-level) but this is cosmetic only. The real guard is in the view.
+Role checks happen in DRF views via `raise PermissionDenied` — server-side enforcement. React UI hides buttons based on role stored in `localStorage` — cosmetic only. The real guard is always the API.
 
-**`request.user` available in all templates** via Django's `auth` context processor — no need to pass user manually to every `render()` call.
+**Token storage:** JWT tokens stored in `localStorage`. Known security tradeoff — vulnerable to XSS attacks. `httpOnly` cookies would be more secure but require additional CSRF handling. Acceptable for this scope.
 
 ---
 
 ## Assumptions Around Authentication and Roles
 
-- **Self-selected roles** — users pick their own role at registration. There is no admin approval step or invite system. This is a known security gap: anyone can register as Admin. Acceptable for an internal tool with trusted users, not acceptable for a public-facing product.
-- **No email verification** — accounts are active immediately after registration. Fake or duplicate accounts are possible.
-- **No password reset** — if a user forgets their password, an admin must reset it via Django admin (`/admin/`). A full password reset flow (email link) was not implemented.
-- **No multi-tenancy** — all data is visible based on role, not organisation. A single deployment serves all users in one shared database. Adding tenancy would require a `Organisation` model and filtering every query by org.
-- **No session timeout** — sessions persist until logout. For sensitive business data, a configurable session expiry should be added.
+- **Self-selected roles** — users pick their own role at registration. No admin approval step or invite system. Known security gap: anyone can register as Admin. Acceptable for internal tools with trusted users.
+- **No email verification** — accounts are active immediately after registration.
+- **No password reset** — admin must reset via Django admin (`/admin/`). Full email-based reset flow not implemented.
+- **No multi-tenancy** — all data is visible based on role, not organisation. Adding tenancy would require an `Organisation` model and filtering every query by org.
+- **No token refresh on expiry** — access token expires after 60 min. User must log in again. Automatic refresh via interceptor not implemented.
 
 ---
 
@@ -105,24 +125,25 @@ Role checks happen in views via `raise PermissionDenied` — server-side enforce
 
 | Decision | Trade-off |
 |----------|-----------|
-| Django monolith over API + SPA | Faster to build, harder to add a mobile app later |
-| Manual role selection at registration | Simple UX, but anyone can claim Admin role |
-| `kpi_summary` as a model property | Clean to use in templates, causes N+1 queries at scale |
-| `WhiteNoise` for static files | No extra infrastructure needed, but not as performant as a CDN at high traffic |
-| Hardcoded role thresholds (90/70%) | Simple and transparent, but not configurable per project |
+| Decoupled React + Django REST API | Clean separation, industry standard — but more complex than a monolith |
+| JWT in localStorage | Simple implementation — but vulnerable to XSS vs httpOnly cookies |
+| Self-selected roles at registration | Simple UX — but anyone can claim Admin role |
+| Server-side pagination (ProjectList) | Correct — only fetches current page. KpiTable still fetches all for cross-project search |
+| N+1 in serializer for KPI counts | Readable code — causes extra queries at scale |
+| Hardcoded role thresholds (90/70%) | Simple and transparent — but not configurable per project |
 | `DecimalField` for values | Precision over performance — slightly slower than `FloatField` |
-| No pagination | Simpler code, breaks at large dataset sizes |
-| Plain Bootstrap templates | Fast to build, no interactivity — full page reload on every action |
+| Seed data via management command | Easy demo setup — but manual step, not automated |
 
 ---
 
 ## Shortcuts Taken Due to Exercise Timeline
 
-- **No email verification on registration** — would require an email backend (SendGrid, SES) and a token flow
-- **No password reset flow** — skipped in favour of admin-managed resets
-- **N+1 query on project list** — `kpi_summary` property works correctly but is not query-optimised; `annotate()` approach identified but not implemented
-- **No pagination** — list views load all records; acceptable at small scale
-- **No test suite** — no unit or integration tests written; models and views are manually tested only
-- **No rate limiting on login** — brute force attacks on the login form are not prevented
-- **`STATICFILES_DIRS` warning** — the `static/` directory referenced in settings does not exist; warning appears on every startup but does not affect functionality
-- **Role-based access in templates is cosmetic** — buttons are hidden but a determined user who knows the URL can attempt to access edit/delete pages; server-side `PermissionDenied` is the real guard
+- **No email verification on registration** — would require an email backend (SendGrid, SES) and token flow
+- **No password reset flow** — skipped in favour of admin-managed resets via `/admin/`
+- **No JWT refresh interceptor** — token expires after 60 min, user must re-login manually
+- **KpiTable fetches all records despite server-side pagination** — display is paginated (10 rows, search, status filter), but all data must be fetched first for cross-project search to work; a dedicated `/api/kpis/` endpoint with server-side search/filter would be the correct fix
+- **N+1 queries in serializer** — `SerializerMethodField` for KPI counts runs separate queries; `annotate()` fix identified but not implemented
+- **No test suite** — no unit or integration tests written; all testing done manually
+- **No rate limiting on auth endpoints** — brute force attacks on login not prevented
+- **Role-based access in React UI is cosmetic** — buttons hidden via `localStorage` role check; server-side API is the real enforcement layer
+- **Seed data not auto-deployed** — must be run manually via Railway shell or pre-deploy step
