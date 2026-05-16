@@ -166,12 +166,11 @@ CSRF_TRUSTED_ORIGINS = ['https://kpiplatformapp-production.up.railway.app']
 
 from datetime import timedelta
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',     # Vite dev server
-    'http://localhost:3000',     # fallback
-    'https://your-react-app.vercel.app',  # add after Vercel deploy
-
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:5173,http://localhost:3000',
+    cast=Csv()
+)
 
 CORS_ALLOW_CREDENTIALS = True
 
