@@ -15,12 +15,7 @@ def project_detail(request, pk):
 
 @login_required
 def project_list(request):
-    if request.user.is_admin() or request.user.is_viewer():
-        projects = Project.objects.all()
-    else:
-        projects = Project.objects.filter(owner=request.user)
-    return render(request, 'projects/project_list.html', {'projects': projects})
-
+    return render(request, 'projects/project_list.html')
 
 @login_required
 def project_create(request):

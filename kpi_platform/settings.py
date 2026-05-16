@@ -36,11 +36,28 @@ INSTALLED_APPS = [
     # our apps
     'projects',
     'kpis',
-    'accounts'
+    'accounts',
+    'rest_framework',
+    'corsheaders',
+
+
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -147,4 +164,19 @@ CSRF_TRUSTED_ORIGINS = ['https://kpiplatformapp-production.up.railway.app']
 
 
 
+from datetime import timedelta
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',     # Vite dev server
+    'http://localhost:3000',     # fallback
+    'https://your-react-app.vercel.app',  # add after Vercel deploy
+
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
 

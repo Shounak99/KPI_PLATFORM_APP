@@ -1,38 +1,98 @@
 {% extends 'base.html' %}
-
 {% block title %}Projects{% endblock %}
-
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Projects</h1>
   {% if not request.user.is_viewer %}
-    <a href="{% url 'projects:project_create' %}" class="btn btn-primary">+ New Project</a>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">+ New Project</button>
   {% endif %}
 </div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-  {% for project in projects %}
-  <div class="col">
-    <div class="card h-100 shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">
-          <a href="{% url 'projects:project_detail' project.pk %}" class="text-decoration-none">{{ project.name }}</a>
-        </h5>
-        <p class="card-text text-muted small">{{ project.description|truncatewords:15 }}</p>
-        <p class="card-text small"><strong>Owner:</strong> {{ project.owner }}</p>
+<div id="projects-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+  <div class="col-12"><p class="text-muted">Loading...</p></div>
+</div>
+
+<!-- Create Project Modal -->
+{% if not request.user.is_viewer %}
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">New Project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="card-footer d-flex gap-3 text-sm">
-        <span class="text-success">✓ {{ project.kpi_summary.on_track }}</span>
-        <span class="text-warning">⚠ {{ project.kpi_summary.at_risk }}</span>
-        <span class="text-danger">✗ {{ project.kpi_summary.off_track }}</span>
-        <span class="text-muted ms-auto">{{ project.kpi_summary.total }} KPIs</span>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Name</label>
+          <input type="text" id="proj-name" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea id="proj-desc" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="createProject()">Save</button>
       </div>
     </div>
   </div>
-  {% empty %}
-  <div class="col-12">
-    <p class="text-muted">No projects yet.</p>
-  </div>
-  {% endfor %}
 </div>
+{% endif %}
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+async function loadProjects() {
+  const res = await fetch('/api/projects/');
+  const data = await res.json();
+  const container = document.getElementById('projects-container');
+
+  if (data.length === 0) {
+    container.innerHTML = '<div class="col-12"><p class="text-muted">No projects yet.</p></div>';
+    return;
+  }
+
+  container.innerHTML = data.map(p => `
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">
+            <a href="/projects/${p.id}/" class="text-decoration-none">${p.name}</a>
+          </h5>
+          <p class="card-text text-muted small">${p.description || ''}</p>
+          <p class="card-text small"><strong>Owner:</strong> ${p.owner_username}</p>
+        </div>
+        <div class="card-footer d-flex gap-3">
+          <span class="text-muted small">${p.kpi_count} KPIs</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createProject() {
+  const res = await fetch('/api/projects/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+    body: JSON.stringify({
+      name: document.getElementById('proj-name').value,
+      description: document.getElementById('proj-desc').value,
+    })
+  });
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+    loadProjects();
+  } else {
+    const err = await res.json();
+    alert(JSON.stringify(err));
+  }
+}
+
+loadProjects();
+</script>
 {% endblock %}

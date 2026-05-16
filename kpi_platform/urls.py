@@ -20,8 +20,9 @@ from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
     path('projects/', include('projects.urls', namespace='projects')),
     path('projects/<int:project_pk>/kpis/', include('kpis.urls', namespace='kpis')),
     path('accounts/', include('accounts.urls', namespace='accounts')),
-    path('', lambda request: redirect('projects:project_list'))
+    path('', lambda request: redirect('projects:project_list')),
 ]
